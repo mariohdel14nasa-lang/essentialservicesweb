@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Essential Accounts</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome & Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- PeerJS for P2P Sync -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+  <style>
+    * {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* Custom Gradient Background matching image vibe */
+    .gradient-bg {
+      background: linear-gradient(135deg, #74c390 0%, #3e6d8a 35%, #76638b 70%, #ba89ba 100%);
+      background-size: 200% 200%;
+      animation: gradientShift 15s ease infinite;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Scalloped badge frame for profile photo */
+    .scalloped-badge {
+      position: relative;
+      background: radial-gradient(circle, #3d2b63 0%, #281845 100%);
+      mask-image: radial-gradient(circle at 50% 50%, black 50%, transparent 51%);
+      clip-path: polygon(
+        50% 0%, 56.5% 1.8%, 62.8% 5.2%, 68.3% 10.1%, 72.8% 16.3%, 76.1% 23.4%, 78% 31.1%, 78.4% 39.1%, 80% 41%, 83% 43%, 86% 46%, 88% 50%,
+        86% 54%, 83% 57%, 80% 59%, 78.4% 60.9%, 78% 68.9%, 76.1% 76.6%, 72.8% 83.7%, 68.3% 89.9%, 62.8% 94.8%, 56.5% 98.2%, 50% 100%,
+        43.5% 98.2%, 37.2% 94.8%, 31.7% 89.9%, 27.2% 83.7%, 23.9% 76.6%, 22% 68.9%, 21.6% 60.9%, 20% 59%, 17% 57%, 14% 54%, 12% 50%,
+        14% 46%, 17% 43%, 20% 41%, 21.6% 39.1%, 22% 31.1%, 23.9% 23.4%, 27.2% 16.3%, 31.7% 10.1%, 37.2% 5.2%, 43.5% 1.8%
+      );
+    }
+
+    .scallop-border {
+      box-shadow: 0 0 25px rgba(0,0,0,0.25);
+    }
+
+    /* Soft card styling matching mockup */
+    .card-peach {
+      background-color: #f8c2ac;
+      color: #1a100c;
+    }
+
+    .btn-cream {
+      background-color: #fce1ab;
+      color: #3b0d00;
+    }
+
+    .btn-cream:hover {
+      background-color: #fbd692;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.2);
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4 sm:p-6 text-gray-900 selection:bg-amber-200">
+
+  <!-- Setup Wizard Screen (Initial Setup) -->
+  <div id="setupWizard" class="w-full max-w-md mx-auto hidden flex-col items-center">
+    <div class="w-full bg-white/90 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+      <div class="text-center space-y-2">
+        <h2 class="text-2xl font-extrabold text-gray-900">Welcome to Essential Accounts</h2>
+        <p class="text-xs text-gray-600">Create your local profile to get started. All data remains saved purely on your device.</p>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Display Name *</label>
+          <input type="text" id="setupName" placeholder="Enter display name" class="w-full p-3.5 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-amber-400 outline-none font-semibold text-gray-800">
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Account Tag / Username *</label>
+          <div class="flex items-center border border-gray-200 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-amber-400 bg-white">
+            <span class="pl-3.5 text-gray-400 font-bold">@</span>
+            <input type="text" id="setupUsername" placeholder="username" class="w-full p-3.5 outline-none font-semibold text-gray-800">
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Phone Number (Optional)</label>
+          <input type="text" id="setupPhone" placeholder="Enter phone number" class="w-full p-3.5 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-amber-400 outline-none font-semibold text-gray-800">
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">eMail Address (Optional)</label>
+          <input type="email" id="setupEmail" placeholder="Enter email address" class="w-full p-3.5 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-amber-400 outline-none font-semibold text-gray-800">
+        </div>
+      </div>
+
+      <button onclick="submitSetupWizard()" class="w-full py-4 bg-amber-400 hover:bg-amber-500 text-amber-950 font-extrabold text-base rounded-2xl shadow-lg transition active:scale-[0.98]">
+        Create Profile
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div id="mainApp" class="w-full max-w-md mx-auto hidden flex-col items-center">
+
+    <!-- Main Profile Card Widget (Matching Image Style) -->
+    <div class="w-full flex flex-col items-center space-y-6">
+
+      <!-- Profile Avatar Container -->
+      <div class="relative group">
+        <!-- Scalloped Flower Badge Background -->
+        <div id="avatarBg" class="w-48 h-48 sm:w-56 sm:h-56 rounded-full scallop-border flex items-center justify-center p-3 transition-all duration-300" style="background: radial-gradient(circle, #4a336e 0%, #291a43 100%); shadow: 0 10px 30px rgba(0,0,0,0.3);">
+          
+          <!-- Avatar Image or Default Vector SVG -->
+          <div id="avatarDisplay" class="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-transparent">
+            <!-- Rendered JS avatar or SVG -->
+          </div>
+        </div>
+
+        <!-- Add/Edit Avatar Floating Button (Yellow plus badge top right like mockup) -->
+        <button onclick="triggerAvatarUpload()" class="absolute top-1 right-1 w-12 h-12 rounded-full btn-cream flex items-center justify-center text-xl font-bold shadow-lg hover:scale-110 active:scale-95 transition transform border-2 border-white/20" title="Change Profile Picture">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+        <input type="file" id="avatarFileInput" accept="image/*" class="hidden" onchange="handleAvatarSelect(event)">
+      </div>
+
+      <!-- Account Name & Quick Add Actions Row -->
+      <div class="flex items-center justify-between w-full px-2 gap-3">
+        <!-- Display Name -->
+        <h1 id="displayNameText" class="text-4xl sm:text-5xl font-extrabold text-black tracking-tight truncate max-w-[200px] sm:max-w-[240px]">
+          Mario
+        </h1>
+
+        <!-- Control Buttons Pill (Mockup design: Gold pill with + and logout/export icon) -->
+        <div class="btn-cream px-4 py-2.5 rounded-full flex items-center space-x-3 shadow-lg">
+          <button onclick="openFieldModal()" class="hover:scale-125 transition text-black font-extrabold text-2xl leading-none" title="Add Info Field">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+          <div class="w-px h-6 bg-black/20"></div>
+          <button onclick="openSyncModal()" class="hover:scale-110 transition text-amber-900 font-bold text-xl" title="PeerJS Sync & Settings">
+            <i class="fa-solid fa-arrows-rotate"></i>
+          </button>
+          <div class="w-px h-6 bg-black/20"></div>
+          <button onclick="logoutAccount()" class="hover:scale-110 transition text-amber-900 font-bold text-xl" title="Log Out / Reset Account">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Detail Card (Peach Block) -->
+      <div class="w-full card-peach rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 transition-all">
+        
+        <!-- Account Username / ID Tag -->
+        <div class="pb-2 border-b border-black/10 flex justify-between items-center">
+          <div>
+            <div class="text-xs font-bold text-black/60 uppercase tracking-wider">Account Tag</div>
+            <div id="displayUsername" class="text-lg font-bold text-black">@mario</div>
+          </div>
+          <span class="px-2.5 py-1 bg-black/10 rounded-full text-xs font-semibold text-black/70">Local Account</span>
+        </div>
+
+        <!-- Phone Number Section -->
+        <div class="space-y-1">
+          <div class="flex justify-between items-center">
+            <span class="text-lg sm:text-xl font-bold text-black">Phone Number:</span>
+            <button onclick="openFieldModal('phone')" class="text-xs text-black/60 hover:text-black font-semibold">+ Add</button>
+          </div>
+          <div id="phoneList" class="space-y-1 text-base sm:text-lg font-medium text-black/90">
+            <!-- Dynamic Phone Entries -->
+          </div>
+        </div>
+
+        <!-- Email Section -->
+        <div class="space-y-1">
+          <div class="flex justify-between items-center">
+            <span class="text-lg sm:text-xl font-bold text-black">eMail:</span>
+            <button onclick="openFieldModal('email')" class="text-xs text-black/60 hover:text-black font-semibold">+ Add</button>
+          </div>
+          <div id="emailList" class="space-y-1 text-base sm:text-lg font-medium text-black/90 break-all">
+            <!-- Dynamic Email Entries -->
+          </div>
+        </div>
+
+        <!-- Extra Dynamic Fields Container -->
+        <div id="extraFieldsContainer" class="space-y-4 pt-2 border-t border-black/10">
+          <!-- Dynamic custom fields render here -->
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Storage Status Footer -->
+    <div class="mt-8 text-center text-white/70 text-xs font-medium space-y-1">
+      <p><i class="fa-solid fa-shield-halved mr-1"></i> Data stored locally on device</p>
+      <p id="peerIdStatus" class="text-white/50 text-[10px]">PeerJS: Disconnected</p>
+    </div>
+
+  </div>
+
+  <!-- MODALS -->
+
+  <!-- Edit Profile Modal -->
+  <div id="editProfileModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4 transform transition-all">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-xl font-bold text-gray-800">Edit Profile</h3>
+        <button onclick="closeModal('editProfileModal')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs font-bold text-gray-500 uppercase">Display Name</label>
+          <input type="text" id="inputName" class="w-full mt-1 p-3 border rounded-xl focus:ring-2 focus:ring-amber-400 outline-none font-semibold text-gray-800">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-500 uppercase">Username / ID</label>
+          <input type="text" id="inputUsername" class="w-full mt-1 p-3 border rounded-xl focus:ring-2 focus:ring-amber-400 outline-none font-semibold text-gray-800">
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('editProfileModal')" class="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200">Cancel</button>
+        <button onclick="saveProfileDetails()" class="px-5 py-2.5 rounded-xl bg-amber-400 text-amber-950 font-bold hover:bg-amber-500 shadow-md">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Field Modal -->
+  <div id="fieldModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-xl font-bold text-gray-800" id="fieldModalTitle">Add Account Information</h3>
+        <button onclick="closeModal('fieldModal')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs font-bold text-gray-500 uppercase">Field Category</label>
+          <select id="fieldCategory" class="w-full mt-1 p-3 border rounded-xl focus:ring-2 focus:ring-amber-400 outline-none font-semibold text-gray-800">
+            <option value="phone">Phone Number</option>
+            <option value="email">Email Address</option>
+            <option value="custom">Custom Field (Notes, Handle, Website)</option>
+          </select>
+        </div>
+
+        <div id="customLabelGroup" class="hidden">
+          <label class="text-xs font-bold text-gray-500 uppercase">Label Name</label>
+          <input type="text" id="customLabel" placeholder="e.g., Address, Telegram, Twitter" class="w-full mt-1 p-3 border rounded-xl focus:ring-2 focus:ring-amber-400 outline-none font-semibold text-gray-800">
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-gray-500 uppercase">Value / Content</label>
+          <input type="text" id="fieldValue" placeholder="Enter value..." class="w-full mt-1 p-3 border rounded-xl focus:ring-2 focus:ring-amber-400 outline-none font-semibold text-gray-800">
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('fieldModal')" class="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200">Cancel</button>
+        <button onclick="saveNewField()" class="px-5 py-2.5 rounded-xl bg-amber-400 text-amber-950 font-bold hover:bg-amber-500 shadow-md">Add Item</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PeerJS Synchronization Modal -->
+  <div id="syncModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-arrows-rotate text-amber-500 text-xl"></i>
+          <h3 class="text-xl font-bold text-gray-800">PeerJS Live Sync</h3>
+        </div>
+        <button onclick="closeModal('syncModal')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="space-y-4 text-sm text-gray-600">
+        <!-- My Peer ID -->
+        <div class="p-3 bg-amber-50 rounded-2xl border border-amber-200">
+          <span class="text-xs font-bold text-amber-800 uppercase block mb-1">Your Device Sync Code</span>
+          <div class="flex items-center justify-between gap-2">
+            <code id="myPeerIdCode" class="text-base font-mono font-bold text-amber-950 select-all">Connecting...</code>
+            <button onclick="copyPeerId()" class="px-3 py-1 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded-lg text-xs font-bold transition">
+              Copy
+            </button>
+          </div>
+        </div>
+
+        <hr class="border-gray-100">
+
+        <!-- Connect to Peer -->
+        <div class="space-y-2">
+          <label class="text-xs font-bold text-gray-500 uppercase block">Connect to Remote Essential Account</label>
+          <div class="flex gap-2">
+            <input type="text" id="targetPeerIdInput" placeholder="Paste Remote Code here..." class="flex-grow p-3 border rounded-xl focus:ring-2 focus:ring-amber-400 outline-none text-gray-800 font-mono text-sm">
+            <button onclick="connectToPeer()" class="px-4 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition">
+              Connect
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Sync Action -->
+        <div id="syncActions" class="hidden p-3 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2">
+          <div class="flex items-center gap-2 text-emerald-800 font-bold text-xs">
+            <i class="fa-solid fa-circle-check"></i> Connected to Remote Device!
+          </div>
+          <p class="text-xs text-emerald-700">Push your current account data to the connected peer device:</p>
+          <button onclick="sendPeerData()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition">
+            Sync My Account to Connected Device
+          </button>
+        </div>
+
+        <!-- Connection Log -->
+        <div id="syncLog" class="text-xs font-mono bg-gray-50 p-3 rounded-xl max-h-24 overflow-y-auto text-gray-500">
+          System ready for peer connection.
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2 border-t">
+        <button onclick="closeModal('syncModal')" class="px-5 py-2 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backup & Restore Modal -->
+  <div id="backupModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-xl font-bold text-gray-800">Local Data Backup</h3>
+        <button onclick="closeModal('backupModal')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <p class="text-xs text-gray-500">
+        Export your account data as a JSON file or import a saved backup file to restore details.
+      </p>
+
+      <div class="space-y-2 pt-2">
+        <button onclick="exportDataJSON()" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition">
+          <i class="fa-solid fa-download"></i> Export Profile JSON
+        </button>
+
+        <label class="w-full py-3 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold rounded-xl text-sm flex items-center justify-center gap-2 cursor-pointer transition">
+          <i class="fa-solid fa-upload"></i> Import Profile JSON
+          <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="importDataJSON(event)">
+        </label>
+        
+        <button onclick="resetToDefaultData()" class="w-full py-2.5 text-red-500 hover:bg-red-50 font-semibold rounded-xl text-xs transition mt-2">
+          Reset Profile to Default
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-semibold flex items-center gap-2 z-50 opacity-0 pointer-events-none transition-all duration-300">
+    <i id="toastIcon" class="fa-solid fa-circle-info text-amber-400"></i>
+    <span id="toastMsg">Notification message</span>
+  </div>
+
+
+  <!-- Application Logic -->
+  <script>
+    // Empty Account Structure (No hardcoded default user details)
+    let accountData = null;
+    let peer = null;
+    let peerConn = null;
+
+    // Load Data on Startup
+    window.onload = function() {
+      const loaded = loadStoredData();
+      if (!loaded) {
+        showSetupWizard();
+      } else {
+        showMainApp();
+      }
+
+      // Show Category select dynamic toggle
+      document.getElementById('fieldCategory').addEventListener('change', function(e) {
+        const customGroup = document.getElementById('customLabelGroup');
+        if (e.target.value === 'custom') {
+          customGroup.classList.remove('hidden');
+        } else {
+          customGroup.classList.add('hidden');
+        }
+      });
+    };
+
+    /* --- Navigation & Initial Setup --- */
+    function showSetupWizard() {
+      document.getElementById('setupWizard').classList.remove('hidden');
+      document.getElementById('setupWizard').classList.add('flex');
+      document.getElementById('mainApp').classList.add('hidden');
+      document.getElementById('mainApp').classList.remove('flex');
+    }
+
+    function showMainApp() {
+      document.getElementById('setupWizard').classList.add('hidden');
+      document.getElementById('setupWizard').classList.remove('flex');
+      document.getElementById('mainApp').classList.remove('hidden');
+      document.getElementById('mainApp').classList.add('flex');
+      renderProfile();
+      if (!peer) {
+        initPeerJS();
+      }
+    }
+
+    function submitSetupWizard() {
+      const name = document.getElementById('setupName').value.trim();
+      const username = document.getElementById('setupUsername').value.trim().replace(/^@/, '');
+      const phone = document.getElementById('setupPhone').value.trim();
+      const email = document.getElementById('setupEmail').value.trim();
+
+      if (!name || !username) {
+        showToast("Please fill in Display Name and Account Tag");
+        return;
+      }
+
+      accountData = {
+        name: name,
+        username: username,
+        avatar: null,
+        phones: phone ? [phone] : [],
+        emails: email ? [email] : [],
+        customFields: []
+      };
+
+      saveStoredData();
+      showMainApp();
+      showToast("Account created successfully!");
+    }
+
+    /* --- Local Storage Methods --- */
+    function loadStoredData() {
+      const stored = localStorage.getItem('essential_account_data');
+      if (stored) {
+        try {
+          accountData = JSON.parse(stored);
+          return true;
+        } catch(e) {
+          console.error("Failed to parse stored data", e);
+          return false;
+        }
+      }
+      return false;
+    }
+
+    function saveStoredData() {
+      if (accountData) {
+        localStorage.setItem('essential_account_data', JSON.stringify(accountData));
+      }
+    }
+
+    /* --- UI Render Logic --- */
+    function renderProfile() {
+      if (!accountData) return;
+
+      // Name & Username
+      document.getElementById('displayNameText').innerText = accountData.name || 'User';
+      document.getElementById('displayUsername').innerText = '@' + (accountData.username || 'user');
+
+      // Avatar
+      const avatarDisplay = document.getElementById('avatarDisplay');
+      if (accountData.avatar) {
+        avatarDisplay.innerHTML = `<img src="${accountData.avatar}" class="w-full h-full object-cover rounded-full" alt="Profile">`;
+      } else {
+        // Default Mockup Vector Avatar Style matching image exactly
+        avatarDisplay.innerHTML = `
+          <svg class="w-full h-full" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="40" r="15" fill="#F8F38D"/>
+            <path d="M 24 74 C 24 54, 76 54, 76 74 C 62 82, 38 82, 24 74 Z" fill="#F5B79B"/>
+          </svg>
+        `;
+      }
+
+      // Render Phone Numbers
+      const phoneList = document.getElementById('phoneList');
+      phoneList.innerHTML = '';
+      if (!accountData.phones || accountData.phones.length === 0) {
+        phoneList.innerHTML = '<span class="text-sm text-black/50 italic">No phone numbers</span>';
+      } else {
+        accountData.phones.forEach((phone, idx) => {
+          const item = document.createElement('div');
+          item.className = "flex justify-between items-center group/item";
+          item.innerHTML = `
+            <span>${escapeHTML(phone)}</span>
+            <button onclick="deleteField('phones', ${idx})" class="text-xs text-red-600 opacity-0 group-hover/item:opacity-100 hover:underline transition">Delete</button>
+          `;
+          phoneList.appendChild(item);
+        });
+      }
+
+      // Render Emails
+      const emailList = document.getElementById('emailList');
+      emailList.innerHTML = '';
+      if (!accountData.emails || accountData.emails.length === 0) {
+        emailList.innerHTML = '<span class="text-sm text-black/50 italic">No email addresses</span>';
+      } else {
+        accountData.emails.forEach((email, idx) => {
+          const item = document.createElement('div');
+          item.className = "flex justify-between items-center group/item";
+          item.innerHTML = `
+            <span class="truncate">${escapeHTML(email)}</span>
+            <button onclick="deleteField('emails', ${idx})" class="text-xs text-red-600 opacity-0 group-hover/item:opacity-100 hover:underline transition ml-2">Delete</button>
+          `;
+          emailList.appendChild(item);
+        });
+      }
+
+      // Render Custom Fields
+      const customContainer = document.getElementById('extraFieldsContainer');
+      customContainer.innerHTML = '';
+      if (accountData.customFields && accountData.customFields.length > 0) {
+        accountData.customFields.forEach((field, idx) => {
+          const block = document.createElement('div');
+          block.className = "space-y-1 group/item";
+          block.innerHTML = `
+            <div class="flex justify-between items-center">
+              <span class="text-lg sm:text-xl font-bold text-black">${escapeHTML(field.label)}:</span>
+              <button onclick="deleteField('customFields', ${idx})" class="text-xs text-red-600 opacity-0 group-hover/item:opacity-100 hover:underline transition">Delete</button>
+            </div>
+            <div class="text-base sm:text-lg font-medium text-black/90">${escapeHTML(field.value)}</div>
+          `;
+          customContainer.appendChild(block);
+        });
+      }
+    }
+
+    /* --- Item Modification Actions --- */
+    function triggerAvatarUpload() {
+      document.getElementById('avatarFileInput').click();
+    }
+
+    function handleAvatarSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (file.size > 3 * 1024 * 1024) {
+        showToast("Image too large. Please select image < 3MB");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        accountData.avatar = evt.target.result;
+        saveStoredData();
+        renderProfile();
+        showToast("Profile image updated");
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function openEditProfileModal() {
+      document.getElementById('inputName').value = accountData.name || '';
+      document.getElementById('inputUsername').value = accountData.username || '';
+      document.getElementById('editProfileModal').classList.remove('hidden');
+      document.getElementById('editProfileModal').classList.add('flex');
+    }
+
+    function saveProfileDetails() {
+      const nameVal = document.getElementById('inputName').value.trim();
+      const userVal = document.getElementById('inputUsername').value.trim().replace(/^@/, '');
+
+      if (!nameVal) {
+        showToast("Display Name cannot be empty");
+        return;
+      }
+
+      accountData.name = nameVal;
+      accountData.username = userVal || 'user';
+
+      saveStoredData();
+      renderProfile();
+      closeModal('editProfileModal');
+      showToast("Profile details saved");
+    }
+
+    function openFieldModal(category = 'phone') {
+      document.getElementById('fieldCategory').value = category;
+      document.getElementById('fieldValue').value = '';
+      document.getElementById('customLabel').value = '';
+
+      const customGroup = document.getElementById('customLabelGroup');
+      if (category === 'custom') {
+        customGroup.classList.remove('hidden');
+      } else {
+        customGroup.classList.add('hidden');
+      }
+
+      document.getElementById('fieldModal').classList.remove('hidden');
+      document.getElementById('fieldModal').classList.add('flex');
+    }
+
+    function saveNewField() {
+      const cat = document.getElementById('fieldCategory').value;
+      const val = document.getElementById('fieldValue').value.trim();
+
+      if (!val) {
+        showToast("Please fill in the value field");
+        return;
+      }
+
+      if (cat === 'phone') {
+        accountData.phones = accountData.phones || [];
+        accountData.phones.push(val);
+      } else if (cat === 'email') {
+        accountData.emails = accountData.emails || [];
+        accountData.emails.push(val);
+      } else {
+        const label = document.getElementById('customLabel').value.trim() || 'Info';
+        accountData.customFields = accountData.customFields || [];
+        accountData.customFields.push({ label: label, value: val });
+      }
+
+      saveStoredData();
+      renderProfile();
+      closeModal('fieldModal');
+      showToast("New item added");
+    }
+
+    function deleteField(type, index) {
+      if (accountData[type] && accountData[type][index] !== undefined) {
+        accountData[type].splice(index, 1);
+        saveStoredData();
+        renderProfile();
+        showToast("Item deleted");
+      }
+    }
+
+    /* --- PeerJS Peer-to-Peer Sync --- */
+    function initPeerJS() {
+      // Create random peer ID with prefix
+      const randomId = 'ess-' + Math.random().toString(36).substring(2, 8);
+      peer = new Peer(randomId);
+
+      peer.on('open', function(id) {
+        document.getElementById('myPeerIdCode').innerText = id;
+        document.getElementById('peerIdStatus').innerText = `PeerJS Online: ${id}`;
+        logSync(`My Peer ID initialized: ${id}`);
+      });
+
+      peer.on('connection', function(conn) {
+        peerConn = conn;
+        setupConnListeners();
+        logSync(`Incoming peer connected from remote device.`);
+        document.getElementById('syncActions').classList.remove('hidden');
+        showToast("Remote peer connected!");
+      });
+
+      peer.on('error', function(err) {
+        logSync(`PeerJS Error: ${err.type}`);
+        console.error(err);
+      });
+    }
+
+    function connectToPeer() {
+      const targetId = document.getElementById('targetPeerIdInput').value.trim();
+      if (!targetId) {
+        showToast("Enter a valid Remote Peer Code");
+        return;
+      }
+
+      logSync(`Connecting to ${targetId}...`);
+      peerConn = peer.connect(targetId);
+
+      peerConn.on('open', function() {
+        setupConnListeners();
+        logSync(`Successfully connected to peer: ${targetId}`);
+        document.getElementById('syncActions').classList.remove('hidden');
+        showToast("Connected to Remote Peer!");
+      });
+    }
+
+    function setupConnListeners() {
+      peerConn.on('data', function(data) {
+        logSync(`Received synced profile data!`);
+        if (data && data.type === 'ESSENTIAL_ACCOUNT_SYNC') {
+          accountData = data.payload;
+          saveStoredData();
+          renderProfile();
+          showToast("Account synced from Peer!");
+        }
+      });
+
+      peerConn.on('close', function() {
+        logSync(`Peer connection closed.`);
+        document.getElementById('syncActions').classList.add('hidden');
+      });
+    }
+
+    function sendPeerData() {
+      if (!peerConn || !peerConn.open) {
+        showToast("No active Peer connection");
+        return;
+      }
+
+      peerConn.send({
+        type: 'ESSENTIAL_ACCOUNT_SYNC',
+        payload: accountData
+      });
+
+      logSync(`Pushed current account data to remote peer.`);
+      showToast("Data sent to Peer!");
+    }
+
+    function copyPeerId() {
+      const text = document.getElementById('myPeerIdCode').innerText;
+      copyToClipboard(text);
+      showToast("Peer Code copied to clipboard!");
+    }
+
+    function openSyncModal() {
+      document.getElementById('syncModal').classList.remove('hidden');
+      document.getElementById('syncModal').classList.add('flex');
+    }
+
+    /* --- Backup / Restore --- */
+    function openBackupModal() {
+      document.getElementById('backupModal').classList.remove('hidden');
+      document.getElementById('backupModal').classList.add('flex');
+    }
+
+    function exportDataJSON() {
+      const jsonStr = JSON.stringify(accountData, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `essential-account-${accountData.username || 'backup'}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("Profile JSON downloaded");
+    }
+
+    function importDataJSON(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const data = JSON.parse(evt.target.result);
+          if (data.name) {
+            accountData = data;
+            saveStoredData();
+            renderProfile();
+            closeModal('backupModal');
+            showToast("Account restored successfully!");
+          } else {
+            showToast("Invalid profile JSON format");
+          }
+        } catch (err) {
+          showToast("Failed to parse JSON file");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetToDefaultData() {
+      localStorage.removeItem('essential_account_data');
+      accountData = null;
+      closeModal('backupModal');
+      showSetupWizard();
+      showToast("Profile reset. Complete initial setup to continue.");
+    }
+
+    function logoutAccount() {
+      localStorage.removeItem('essential_account_data');
+      accountData = null;
+      if (peer) {
+        try { peer.destroy(); } catch(e) {}
+        peer = null;
+      }
+      showSetupWizard();
+      showToast("Logged out successfully");
+    }
+
+    /* --- Helper Functions --- */
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+      document.getElementById(modalId).classList.remove('flex');
+    }
+
+    function logSync(msg) {
+      const log = document.getElementById('syncLog');
+      const time = new Date().toLocaleTimeString();
+      log.innerHTML += `<br>[${time}] ${escapeHTML(msg)}`;
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.innerText = message;
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 3000);
+    }
+
+    function copyToClipboard(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    }
+
+    function escapeHTML(str) {
+      return String(str).replace(/[&<>"']/g, function(m) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        }[m];
+      });
+    }
+  </script>
+</body>
+</html>
